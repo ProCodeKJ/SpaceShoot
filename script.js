@@ -1,5 +1,10 @@
+document.body.style.backgroundColor = "aqua"
+
+
+
 // GLOBAL
 let globalFrame = 0;
+let score = 0;
 
 
 // Setup Canvas
@@ -12,7 +17,7 @@ canvas.height = 500;
 document.body.appendChild(canvas);
 
 // Images Settings
-let backgroundImage,bulletImage,enemyImage,spaceshipImage;
+let backgroundImage,bulletImage,enemyImage,spaceshipImage,gameoverImage;
 function loadImages() {
     backgroundImage = new Image();
     backgroundImage.src = "images/background.jpg";
@@ -25,6 +30,9 @@ function loadImages() {
 
     spaceshipImage = new Image();
     spaceshipImage.src = "images/spaceship.png";
+
+    gameoverImage = new Image();
+    gameoverImage.src = "images/gameOver.jpg";
 }
 
 // Player Settings
@@ -36,11 +44,25 @@ function loadImages() {
     let playerPower = 1; // Player Power #
 
 function render() {
+
     ctx.drawImage(backgroundImage , 0 , 0 ,canvas.width , canvas.height);
     ctx.drawImage(spaceshipImage,PlayerX,PlayerY);
 
+    // draw
+    ctx.fillText(`SCORE : ${score}   |   HEALTH : ${Math.floor(Health)}`,20,30);
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial"
+
     for(let i = 0; i<bulletList.length;i++) {
-        ctx.drawImage(bulletImage,bulletList[i].x , bulletList[i].y)
+
+        if(bulletList[i].alive) {
+            ctx.drawImage(bulletImage,bulletList[i].x , bulletList[i].y)
+        }
+    }
+    
+    for(let i = 0; i<enemyList.length;i++) {
+        //ctx.drawImage(bulletImage,enemyList[i].x , enemyList[i].y)
+        ctx.drawImage(enemyImage,enemyList[i].x, enemyList[i].y)
     }
     }
 
@@ -48,7 +70,6 @@ let keysDown = {} // gets keys down
 function checkKeys() {
     document.addEventListener("keydown",(e) => {
        keysDown[e.code] = true;
-       console.log(keysDown);
     });
     
     document.addEventListener("keyup",(e) => {
@@ -68,15 +89,17 @@ function Bullet() {
     this.x = 0;
     this.y = 0;
     this.sy = 5;
+    this.alive = true;
     this.init = () => {
         this.x = PlayerX + 25;
         this.y = PlayerY;
         bulletList.push(this);
     }
-    this.update = () => {
+    this.update = function() {
         if (this.sy > 50) {
         this.y += 10;
         this.sy ++
+        this.x = canvas.width - 30
         }else {
         this.y -= this.sy;
         this.sy ++
@@ -84,12 +107,55 @@ function Bullet() {
         
             
     }
+    this.checkHit = () => {
+        for(let i = 0;i<enemyList.length;i++) {
+            if(this.y <= enemyList[i].y && this.x >= enemyList[i].x && this.x <= enemyList[i].x + 40) {
+                score++
+                this.alive = false;
+                enemyList.splice(i,1);
+            }
+        }
+    }
+}
+
+// Setup Enemy
+let enemyList = [];
+
+function Enemy() {
+    this.x = 0;
+    this.y = 0;
+    this.init = function() {
+        this.y = -50;
+        this.x = pickRandom(50,canvas.width-50);
+        enemyList.push(this);
+    }
+    this.update = function() {
+       this.y += 2;
+
+       if(this.y >= canvas.height) {
+        enemyList.splice(this,1);
+       Health -= 10;
+       }
+    }
+}
+
+// random
+function pickRandom(min,max) {
+    let randNum = Math.floor(Math.random() * (max-min+1));
+    return randNum;
 }
 
 // Create Bullet 
 createBullet = () => {
     let b = new Bullet();
     b.init();
+}
+
+createEnemy = () => {
+    const interval = setInterval(() => {
+        let e = new Enemy();
+        e.init();
+    },2000)
 }
 
 
@@ -124,6 +190,10 @@ function update() {
         sx = -20;
         sy = -20;
     }
+    console.log(Math.abs(sx))
+    if (Math.abs(sx) < 1.5) {
+        console.log(Math.abs(sx))
+    }
 
     if(PlayerY > 430) {
         PlayerY = 430;
@@ -149,19 +219,34 @@ function update() {
 
     // update bullet
     for(let i = 0; i<bulletList.length;i++) {
-       bulletList[i].update();
+        if(bulletList[i].alive) {
+            bulletList[i].update();
+            bulletList[i].checkHit();
+        }
+    }
+
+    for(let i = 0; i<enemyList.length;i++) {
+        enemyList[i].update();
     }
 }
 
-
-
 function main() {
-    render();
-    update();
-    requestAnimationFrame(main);
-    globalFrame += 1;
+    if (Health <= 0) {
+        ctx.drawImage(gameoverImage,canvas.width / 2 - 200,50,380,380)
+    }else {
+        render();
+        update();
+        requestAnimationFrame(main);
+        globalFrame += 1; 
+    }
+  
 }
 
+
+loadImages();
+checkKeys();
+createEnemy();
+main();
 loadImages();
 checkKeys();
 main();
