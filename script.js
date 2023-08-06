@@ -247,6 +247,3 @@ loadImages();
 checkKeys();
 createEnemy();
 main();
-loadImages();
-checkKeys();
-main();
